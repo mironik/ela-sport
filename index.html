@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sportska Oprema - Jetson Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --chat-bg-initial: rgba(255, 255, 255, 0.95);
+            --chat-bg-floating: rgba(255, 255, 255, 0.95);
+            --shadow-strong: 0 10px 30px rgba(0,0,0,0.2);
+            --shadow-soft: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            margin: 0;
+            background-color: transparent; 
+            padding-top: 60px; /* Dodano kako zaglavlje ne bi pokrilo rezultate */
+        }
+
+        /* --- NOVO: STAKLENO ZAGLAVLJE --- */
+        .navbar-custom {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1030;
+        }
+        .navbar-brand { font-weight: bold; color: white !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .cart-btn {
+            background: transparent; border: none; color: white; font-size: 1.5rem; position: relative;
+        }
+        .cart-badge {
+            position: absolute; top: 0; right: -8px; font-size: 0.7rem; background: var(--primary-color); border: 2px solid #222;
+        }
+
+        /* --- SLIDESHOW POZADINA --- */
+        #bg-slideshow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: #1a1a1a;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .slide.active { opacity: 1; }
+
+        #bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+
+        /* --- POČETNI CHAT --- */
+        #initial-chat-container {
+            position: fixed;
+            top: 60%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            z-index: 1000;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            background: var(--chat-bg-initial);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            box-shadow: var(--shadow-strong);
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        #initial-chat-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -100%) scale(0.8);
+        }
+
+        .ai-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background: white;
+            border: 3px solid var(--primary-color);
+        }
+
+        /* --- TREPEREĆI KURSOR ZA AI TEKST --- */
+        .typing-cursor {
+            font-weight: 300;
+            color: var(--primary-color);
+            animation: blink 1s infinite;
+            margin-left: 2px;
+       }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+      }
+
+        .ai-avatar img { width: 100%; height: 100%; object-fit: contain; }
+
+        .search-input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid #dee2e6;
+        }
+
+        .search-input-group input {
+            border: none;
+            background: transparent;
+            flex-grow: 1;
+            outline: none;
+            font-size: 1rem;
+            padding: 10px 20px;
+            text-align: center;
+        }
+
+        /* --- ANIMIRANA LOPTA --- */
+        .ball-btn-container {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 5px;
+            flex-shrink: 0;
+        }
+
+        .sports-ball {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 2px 5px 10px rgba(0,0,0,0.3);
+            animation: float 2s ease-in-out infinite, rotate 4s linear infinite;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .ball-soccer { background: radial-gradient(circle at 30% 30%, #fff, #ddd 60%, #333 61%, #fff 65%); background-size: 20px 20px; }
+        .ball-basketball { background: radial-gradient(circle at 30% 30%, #ff8c00, #cc5500); background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, #333 5px, #333 6px); }
+        .ball-tennis { background: #ccff00; }
+        .ball-handball { background: radial-gradient(circle at 30% 30%, #fff, #eee); border: 2px dashed #333; }
+        .ball-volleyball { background: conic-gradient(#fff 0deg 60deg, #1e90ff 60deg 120deg, #fff 120deg 180deg, #1e90ff 180deg 240deg, #fff 240deg 300deg, #1e90ff 300deg 360deg); }
+
+        /* --- PLUTAJUĆI CHAT --- */
+        #floating-chat-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            width: 90%;
+            max-width: 800px;
+            background: var(--chat-bg-floating);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            box-shadow: var(--shadow-strong);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1050;
+            transition: transform 0.4s ease-out;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        #floating-chat-bar.active { transform: translateX(-50%) translateY(0); }
+
+        #floating-input {
+            border: none;
+            background: transparent;
+            flex-grow: 1;
+            outline: none;
+            font-size: 1rem;
+            padding: 5px;
+        }
+
+        #floating-send-btn {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--primary-color);
+            color: white;
+            transition: transform 0.2s;
+        }
+
+        #floating-send-btn:hover { transform: scale(1.1); background: #0b5ed7; }
+
+        /* --- REZULTATI --- */
+        #results-area {
+            padding-top: 20px;
+            padding-bottom: 100px;
+            min-height: 100vh;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            display: none;
+            position: relative;
+            z-index: 10;
+        }
+
+        #results-area.visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .product-card {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .product-img-container {
+            height: 200px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .product-img-container img { width: 100%; height: 100%; object-fit: cover; }
+        .product-img-placeholder { color: #adb5bd; font-size: 4rem; }
+        
+        .loader { display: none; text-align: center; padding: 40px 20px; }
+        .spinner-border { width: 3rem; height: 3rem; color: var(--primary-color); }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.9); color: white; padding: 15px; border-radius: 10px;
+            text-align: center; margin-top: 20px; backdrop-filter: blur(5px);
+        }
+
+        @media (max-width: 576px) {
+            #initial-chat-container { top: 55%; width: 95%; padding: 1.5rem; }
+            .product-img-container { height: 150px; }
+            #floating-chat-bar { width: 95%; bottom: 15px; border-radius: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar fixed-top navbar-custom py-2">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-shop me-2"></i>Ela sport
+            </a>
+            <button class="cart-btn" data-bs-toggle="offcanvas" data-bs-target="#kosaricaPanel">
+                <i class="bi bi-cart3"></i>
+                <span class="badge rounded-pill cart-badge" id="broj-artikala">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <div id="bg-slideshow">
+        <div id="bg-overlay"></div>
+    </div>
+
+    <div id="initial-chat-container">
+    <div class="ai-avatar">
+        <img src="logo.png" alt="Logo" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'bi bi-shop fs-1 text-primary\'></i>'">
+    </div>
+    
+    <h3 class="mb-3 fw-bold">Pronađite savršenu opremu</h3>
+    
+    <div id="ai-vodic-tagovi" class="mb-4 d-flex flex-wrap justify-content-center align-items-center gap-2">
+        </div>
+    
+    <div class="search-input-group shadow-sm">
+        <input type="text" id="main-input" placeholder="Možete i sami upisati što tražite..." aria-label="Pretraga">
+        <div class="ball-btn-container" onclick="handleSearch()">
+            <div id="search-ball" class="sports-ball ball-soccer"></div>
+        </div>
+    </div>
+</div>
+    <small class="text-muted mt-2 d-block" style="font-size: 0.8rem;">Kliknite na loptu za pretragu</small>
+</div>
+
+    <div class="container" id="results-area">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h4 id="search-title" class="fw-bold text-white" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Rezultati pretrage</h4>
+                <p class="text-white-50 small" id="search-subtitle">AI analizira ponudu...</p>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-light btn-sm" style="backdrop-filter: blur(5px);" onclick="resetShop()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Novi upit
+                </button>
+            </div>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="spinner-border" role="status"><span class="visually-hidden">Učitavanje...</span></div>
+            <p class="mt-2 text-white fw-bold">AI povezivanje s bazom...</p>
+        </div>
+
+        <div id="error-container"></div>
+        <div class="row g-4" id="products-grid"></div>
+    </div>
+
+    <div id="floating-chat-bar">
+        <i class="bi bi-stars text-primary fs-5 me-2"></i>
+        <input type="text" id="floating-input" placeholder="Promijeni upit...">
+        <button id="floating-send-btn" onclick="handleSearchFloating()">
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="kosaricaPanel">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title fw-bold">Vaš Upit</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column">
+            <div id="lista-kosarice" class="flex-grow-1 overflow-auto mb-3">
+                <p class="text-muted text-center mt-5">Trenutno nemate dodanih artikala.</p>
+            </div>
+
+            <div class="checkout-form border-top pt-3">
+                <h6 class="fw-bold mb-3">Podaci za dostavu i potvrdu</h6>
+                <select id="tipKupca" class="form-select mb-2">
+                    <option value="privatni">Fizička osoba (Pouzeće)</option>
+                    <option value="poslovni">Poslovni subjekt (Predračun)</option>
+                </select>
+                <input type="email" id="emailKupca" class="form-control mb-3" placeholder="Vaša E-mail adresa" required>
+                <button class="btn btn-primary w-100 py-2 fw-bold" onclick="posaljiNarudzbu()">POŠALJI UPIT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- KONFIGURACIJA ---
+        const API_URL = 'http://cloud2.video:8000'; 
+        const SLIDESHOW_SLIKE = ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg'];
+        const SLIDESHOW_FOLDER = 'slideshow/';
+        const INTERVAL_VRIJEME = 5000;
+
+        // --- SLIDESHOW LOGIKA ---
+        function initSlideshow() {
+            const container = document.getElementById('bg-slideshow');
+            const overlay = document.getElementById('bg-overlay');
+            if (SLIDESHOW_SLIKE.length === 0) return;
+
+            SLIDESHOW_SLIKE.forEach((imageName, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                if (index === 0) slide.classList.add('active');
+                const fullPath = SLIDESHOW_FOLDER + imageName;
+                slide.style.backgroundImage = `url('${fullPath}')`;
+                slide.onerror = () => console.warn("Slika nije pronađena: " + fullPath);
+                container.insertBefore(slide, overlay);
+            });
+
+            if (SLIDESHOW_SLIKE.length > 1) {
+                setInterval(() => {
+                    const slides = document.querySelectorAll('.slide');
+                    let currentActive = null, currentIndex = 0;
+                    slides.forEach((s, idx) => {
+                        if (s.classList.contains('active')) { currentActive = s; currentIndex = idx; }
+                    });
+                    if (currentActive) {
+                        currentActive.classList.remove('active');
+                        const nextIndex = (currentIndex + 1) % slides.length;
+                        slides[nextIndex].classList.add('active');
+                    }
+                }, INTERVAL_VRIJEME);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            initSlideshow();
+            osvjeziPrikazKosarice(); // Novo: Učitaj košaricu kod paljenja
+        });
+
+        // --- LOGIKA APLIKACIJE ---
+        const mainInput = document.getElementById('main-input');
+        const floatingInput = document.getElementById('floating-input');
+        const initialChat = document.getElementById('initial-chat-container');
+        const resultsArea = document.getElementById('results-area');
+        const floatingBar = document.getElementById('floating-chat-bar');
+        const productsGrid = document.getElementById('products-grid');
+        const loader = document.getElementById('loader');
+        const searchTitle = document.getElementById('search-title');
+        const searchSubtitle = document.getElementById('search-subtitle');
+        const errorContainer = document.getElementById('error-container');
+        const searchBall = document.getElementById('search-ball');
+
+        const ballTypes = ['ball-soccer', 'ball-basketball', 'ball-tennis', 'ball-handball', 'ball-volleyball'];
+        let currentBallIndex = 0;
+        
+        setInterval(() => {
+            searchBall.classList.remove(ballTypes[currentBallIndex]);
+            currentBallIndex = (currentBallIndex + 1) % ballTypes.length;
+            searchBall.classList.add(ballTypes[currentBallIndex]);
+        }, 3000);
+
+        mainInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSearch(); });
+        floatingInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSearchFloating(); });
+
+        function handleSearch() {
+            const query = mainInput.value.trim();
+            if (!query) {
+                initialChat.animate([
+                    { transform: 'translate(-50%, -50%) translateX(0)' },
+                    { transform: 'translate(-50%, -50%) translateX(10px)' },
+                    { transform: 'translate(-50%, -50%) translateX(-10px)' },
+                    { transform: 'translate(-50%, -50%) translateX(0)' }
+                ], { duration: 300 });
+                return;
+            }
+            initiateSearchFlow(query);
+        }
+
+        function handleSearchFloating() {
+            const query = floatingInput.value.trim();
+            if (!query) return;
+            initiateSearchFlow(query, true);
+        }
+
+        async function initiateSearchFlow(query, isUpdate = false) {
+            if (!isUpdate) {
+                initialChat.classList.add('hidden');
+                setTimeout(() => {
+                    initialChat.style.display = 'none';
+                    resultsArea.classList.add('visible');
+                    floatingBar.classList.add('active');
+                }, 300);
+            } else {
+                productsGrid.innerHTML = '';
+                errorContainer.innerHTML = '';
+            }
+
+            searchTitle.innerText = `Rezultati za: "${query}"`;
+            searchSubtitle.innerText = "Spajanje na AI server...";
+            loader.style.display = 'block';
+            productsGrid.style.display = 'none';
+            errorContainer.innerHTML = '';
+
+            try {
+                const response = await fetch(API_URL + '/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) throw new Error(`Greška servera: ${response.status}`);
+                const data = await response.json();
+                
+                loader.style.display = 'none';
+                productsGrid.style.display = 'flex';
+
+                if (data.products && data.products.length > 0) {
+                    searchSubtitle.innerText = data.message || `Pronađeno ${data.products.length} artikala`;
+                    renderProducts(data.products);
+                } else {
+                    searchSubtitle.innerText = "Nema rezultata";
+                    productsGrid.style.display = 'none';
+                    errorContainer.innerHTML = `<div class="alert alert-warning">Nismo pronašli ništa za "${query}".</div>`;
+                }
+
+                if(window.innerWidth < 768) window.scrollTo({ top: 100, behavior: 'smooth' });
+
+            } catch (error) {
+                console.error("Greška pri dohvatu:", error);
+                loader.style.display = 'none';
+                productsGrid.style.display = 'none';
+                errorContainer.innerHTML = `
+                    <div class="error-message">
+                        <i class="bi bi-exclamation-triangle-fill fs-3"></i><br>
+                        <strong>Nemamo vezu s AI serverom!</strong><br>
+                        <small class="text-white-50">${error.message}</small>
+                    </div>
+                `;
+            }
+        }
+
+        function renderProducts(products) {
+            productsGrid.innerHTML = '';
+            products.forEach(product => {
+                const col = document.createElement('div');
+                col.className = 'col-12 col-md-6 col-lg-4 col-xl-3';
+                
+                let imageContent = product.image_url 
+                    ? `<img src="${product.image_url}" alt="${product.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"><div class="product-img-placeholder" style="display:none"><i class="bi bi-box-seam"></i></div>`
+                    : `<div class="product-img-placeholder"><i class="bi bi-${getIconForCategory(product.category)}"></i></div>`;
+
+                // NOVO: Gumb "Dodaj" sada poziva funkciju za košaricu
+                col.innerHTML = `
+                    <div class="card product-card h-100">
+                        <div class="product-img-container">${imageContent}</div>
+                        <div class="card-body d-flex flex-column">
+                            <span class="badge bg-light text-dark mb-2 align-self-start text-capitalize">${product.category || 'Oprema'}</span>
+                            <h5 class="card-title text-truncate" title="${product.name}">${product.name}</h5>
+                            <p class="card-text text-muted small flex-grow-1">${product.description || ''}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="fs-5 fw-bold text-primary">${product.price} €</span>
+                                <button class="btn btn-sm btn-outline-primary rounded-pill" 
+                                    onclick="dodajUKosaricu('${product.id || Math.random()}', '${product.name.replace(/'/g, "\\'")}', '${product.price}')">
+                                    <i class="bi bi-cart-plus"></i> Dodaj
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                productsGrid.appendChild(col);
+            });
+        }
+
+        function resetShop() {
+            resultsArea.classList.remove('visible');
+            floatingBar.classList.remove('active');
+            setTimeout(() => {
+                resultsArea.style.display = 'none';
+                productsGrid.innerHTML = '';
+                errorContainer.innerHTML = '';
+                mainInput.value = '';
+                floatingInput.value = '';
+                initialChat.style.display = 'block';
+                setTimeout(() => initialChat.classList.remove('hidden'), 50);
+            }, 300);
+        }
+
+        function getIconForCategory(cat) {
+            if (!cat) return 'box-seam';
+            const lowerCat = cat.toLowerCase();
+            if (lowerCat.includes('nogomet')) return 'ball';
+            if (lowerCat.includes('košarka')) return 'basketball';
+            if (lowerCat.includes('skijanje')) return 'snow2';
+            if (lowerCat.includes('trčanje')) return 'stopwatch';
+            if (lowerCat.includes('tenis')) return 'trophy';
+            return 'box-seam';
+        }
+
+        // --- NOVO: LOGIKA KOŠARICE ---
+        let kosarica = JSON.parse(localStorage.getItem('elaKosarica')) || [];
+
+        function dodajUKosaricu(id, naziv, cijena) {
+            kosarica.push({ id, naziv, cijena });
+            localStorage.setItem('elaKosarica', JSON.stringify(kosarica));
+            osvjeziPrikazKosarice();
+            
+            // Otvori ladicu automatski da korisnik vidi da je dodano
+            const bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('kosaricaPanel'));
+            bsOffcanvas.show();
+        }
+
+        function ukloniIzKosarice(index) {
+            kosarica.splice(index, 1);
+            localStorage.setItem('elaKosarica', JSON.stringify(kosarica));
+            osvjeziPrikazKosarice();
+        }
+
+        function osvjeziPrikazKosarice() {
+            document.getElementById('broj-artikala').innerText = kosarica.length;
+            const lista = document.getElementById('lista-kosarice');
+            
+            if (kosarica.length === 0) {
+                lista.innerHTML = '<p class="text-muted text-center mt-5">Trenutno nemate dodanih artikala.</p>';
+                return;
+            }
+
+            let html = '';
+            let ukupno = 0;
+            kosarica.forEach((artikl, index) => {
+                ukupno += parseFloat(artikl.cijena || 0);
+                html += `
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <div>
+                            <p class="mb-0 fw-bold small">${artikl.naziv}</p>
+                            <small class="text-muted">${artikl.cijena} €</small>
+                        </div>
+                        <button class="btn btn-sm text-danger" onclick="ukloniIzKosarice(${index})"><i class="bi bi-trash"></i></button>
+                    </div>
+                `;
+            });
+            html += `<div class="mt-3 text-end"><h6 class="fw-bold">Ukupno: ${ukupno.toFixed(2)} €</h6></div>`;
+            lista.innerHTML = html;
+        }
+
+        function posaljiNarudzbu() {
+            const email = document.getElementById('emailKupca').value;
+            if (!email || kosarica.length === 0) {
+                alert("Molimo unesite E-mail i dodajte barem jedan artikl.");
+                return;
+            }
+            alert(`Simulacija: Podaci se šalju na VPS za email ${email}...`);
+            // Ovdje kasnije ide Vaš Fetch poziv prema VPS-u
+        }
+ // --- INTERAKTIVNI VODIČ ZA PRETRAGU ---
+// Ovdje definirate stablo: Glavni pojmovi -> Podkategorije -> Specifične vrste
+const kategorijeStablo = {
+    "početak": ["Žene", "Muškarce", "Djecu"],
+    "Žene": ["Odjeća", "Obuća", "Oprema"],
+    "Muškarce": ["Odjeća", "Obuća", "Oprema"],
+    "Djecu": ["Odjeća", "Obuća", "Oprema"],
+    "Odjeća": ["Jakne", "Hlače", "Majice", "Trenerke"],
+    "Obuća": ["Tenisice", "Kopačke", "Zimska obuća"],
+    "Oprema": ["Lopte", "Reketi", "Ruksaci", "Zaštita"]
+};
+
+const vodicContainer = document.getElementById('ai-vodic-tagovi');
+// mainInput je već definiran u vašem originalnom kodu
+
+function prikaziTagove(kljuc) {
+    vodicContainer.innerHTML = ''; // Očisti trenutne gumbe
+    
+    // Ako smo došli do kraja stabla (nema daljnjih podkategorija)
+    if (!kategorijeStablo[kljuc]) {
+        const poruka = document.createElement('span');
+        poruka.className = 'text-success fw-medium small me-2';
+        poruka.innerHTML = '<i class="bi bi-check-circle"></i> Odlično! Sada kliknite na loptu.';
+        vodicContainer.appendChild(poruka);
+        dodajGumbZaReset();
+        return;
+    }
+
+    // Generiraj nove gumbe za trenutnu razinu
+    kategorijeStablo[kljuc].forEach(pojam => {
+        const btn = document.createElement('button');
+        // Moderni Bootstrap dizajn za tagove (pill format)
+        btn.className = 'btn btn-sm btn-outline-primary rounded-pill px-3 fw-medium shadow-sm';
+        btn.innerText = pojam;
+        
+        btn.onclick = () => {
+            // 1. Dodaj kliknuti pojam u input polje
+            const trenutniTekst = mainInput.value.trim();
+            mainInput.value = trenutniTekst ? trenutniTekst + ' ' + pojam : pojam;
+            
+            // 2. Prikaži iduću razinu podkategorija
+            prikaziTagove(pojam);
+        };
+        
+        vodicContainer.appendChild(btn);
+    });
+
+    // Dodaj "X" gumb za brisanje ako nismo na početku, kako bi korisnik mogao ispraviti grešku
+    if (kljuc !== 'početak') {
+        dodajGumbZaReset();
+    }
+}
+
+function dodajGumbZaReset() {
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-sm btn-light text-muted rounded-pill px-2 shadow-sm';
+    resetBtn.title = 'Kreni ispočetka';
+    resetBtn.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+    resetBtn.onclick = () => {
+        mainInput.value = ''; // Očisti polje
+        prikaziTagove('početak'); // Vrati tagove na početak
+    };
+    vodicContainer.appendChild(resetBtn);
+}
+
+// Pokreni vodič čim se stranica učita
+window.addEventListener('DOMContentLoaded', () => {
+    prikaziTagove('početak');
+});
+                                                       
+    </script>
+</body>
+</html>
