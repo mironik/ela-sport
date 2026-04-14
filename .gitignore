@@ -1,3 +1,1 @@
-The provided input shows only a single modified file named 'ela-sport' which appears to be a directory or executable without a clear extension indicating it's a source file. However, since there are no typical build artifacts, dependency directories, or temporary files listed in the changes, and the file name alone doesn't clearly indicate it should be ignored, no entries need to be added to the .gitignore file.
-
-(empty — output nothing)
+ela-sport/
