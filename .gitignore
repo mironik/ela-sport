@@ -1,3 +1,32 @@
-The provided input shows only a single modified file named 'ela-sport' which appears to be a directory or executable without a clear extension indicating it's a source file. However, since there are no typical build artifacts, dependency directories, or temporary files listed in the changes, and the file name alone doesn't clearly indicate it should be ignored, no entries need to be added to the .gitignore file.
+```
+# Compressed files
+*.tar.gz
 
-(empty — output nothing)
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+
+# Build artifacts
+dist/
+build/
+target/
+```
